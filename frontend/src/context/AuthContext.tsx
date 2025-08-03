@@ -63,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Check current auth status
         const response = await api.get("/auth/status");
+        console.log("Auth status response:", response.data);
         if (response.data.user) {
           setUser(response.data.user);
           console.log('User authenticated:', response.data.user.email);
