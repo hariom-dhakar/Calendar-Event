@@ -5,7 +5,6 @@ const userSchema = new mongoose.Schema(
     googleId: { type: String, required: true, unique: true },
     email: { type: String, required: true },
     name: String,
-    username: { type: String, unique: true },
     picture: String,
     accessToken: String,
     refreshToken: String,

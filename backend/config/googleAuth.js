@@ -39,6 +39,7 @@ const getUserInfo = async (accessToken) => {
   oauth2Client.setCredentials({ access_token: accessToken })
   const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client })
   const { data } = await oauth2.userinfo.get()
+  console.log("User info retrieved:", data)
   return data
 }
 
