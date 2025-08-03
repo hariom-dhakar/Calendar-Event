@@ -9,7 +9,6 @@ const router = express.Router()
 const ensureValidToken = async (user) => {
   if (user.needsTokenRefresh() && user.refreshToken) {
     try {
-      console.log('Token expired, refreshing...')
       const newTokens = await refreshAccessToken(user.refreshToken)
       
       user.accessToken = newTokens.access_token
@@ -18,8 +17,7 @@ const ensureValidToken = async (user) => {
       }
       user.tokenExpiry = new Date(newTokens.expiry_date)
       await user.save()
-      
-      console.log('Token refreshed successfully')
+     
       return user.accessToken
     } catch (error) {
       console.error('Token refresh failed:', error)
@@ -142,15 +140,6 @@ router.get("/events", requireAuth, async (req, res) => {
     if (isNaN(maxResultsNum) || maxResultsNum < 1 || maxResultsNum > 2500) {
       return res.status(400).json({ error: "maxResults must be between 1 and 2500" })
     }
-
-    console.log(`Fetching events for user ${req.user.email} with params:`, {
-      timeMin,
-      timeMax,
-      maxResults: maxResultsNum,
-      orderBy,
-      singleEvents
-    })
-
     // Refresh token if needed
     const accessToken = await ensureValidToken(req.user)
 
@@ -212,10 +201,6 @@ router.delete("/events/:eventId", requireAuth, async (req, res) => {
     if (!eventId) {
       return res.status(400).json({ error: "Event ID is required" })
     }
-
-    console.log(`Deleting event ${eventId} for user ${req.user.email}`)
-
-    // Refresh token if needed
     const accessToken = await ensureValidToken(req.user)
 
     const result = await deleteCalendarEvent(accessToken, eventId)

@@ -24,7 +24,11 @@ interface CalendarEvent {
 
 type ViewType = "month" | "week" | "day"
 
-const CalendarView: React.FC = () => {
+interface CalendarViewProps {
+  onDateSelect?: (date: string) => void; // Callback function for date selection
+}
+
+const CalendarView: React.FC<CalendarViewProps> = ({ onDateSelect }) => {
   const { user } = useAuth()
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [loading, setLoading] = useState(false)
@@ -209,15 +213,34 @@ const CalendarView: React.FC = () => {
       days.push(
         <div
           key={date.toISOString()}
-          className={`min-h-[100px] sm:min-h-[120px] p-2 sm:p-3 border border-gray-200/60 transition-all duration-200 hover:shadow-md ${
-            isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50/50"
+          className={`min-h-[100px] sm:min-h-[120px] p-2 sm:p-3 border border-gray-200/60 transition-all duration-200 hover:shadow-md cursor-pointer hover:ring-2 hover:ring-blue-200 relative group ${
+            isCurrentMonth ? "bg-white hover:bg-blue-50" : "bg-gray-50/50 hover:bg-gray-100"
           } ${isToday ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 ring-1 ring-blue-200" : ""}`}
+          onClick={() => {
+            if (onDateSelect) {
+              // Use local date formatting to avoid timezone issues
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              const selectedDateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
+              onDateSelect(selectedDateString);
+            }
+          }}
+          title="Click to create event on this date"
         >
-          <div className={`text-sm sm:text-base font-semibold mb-2 ${
-            isCurrentMonth ? "text-gray-900" : "text-gray-400"
-          } ${isToday ? "text-blue-700" : ""}`}>
-            {date.getDate()}
-            {isToday && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full ml-1 inline-block"></div>}
+          <div className="flex justify-between items-start">
+            <div className={`text-sm sm:text-base font-semibold mb-2 ${
+              isCurrentMonth ? "text-gray-900" : "text-gray-400"
+            } ${isToday ? "text-blue-700" : ""}`}>
+              {date.getDate()}
+              {isToday && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full ml-1 inline-block"></div>}
+            </div>
+            {/* Plus icon that appears on hover */}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </div>
           </div>
           <div className="space-y-1">
             {dayEvents.slice(0, 3).map((event, index) => (
@@ -302,7 +325,20 @@ const CalendarView: React.FC = () => {
 
       days.push(
         <div key={date.toISOString()} className="flex-1 min-h-[500px] border-r border-gray-200 last:border-r-0">
-          <div className={`p-3 text-center border-b border-gray-200 ${isToday ? "bg-blue-50 text-blue-600 font-semibold" : "bg-gray-50"}`}>
+          <div 
+            className={`p-3 text-center border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-200 ${isToday ? "bg-blue-50 text-blue-600 font-semibold" : "bg-gray-50"}`}
+            onClick={() => {
+              if (onDateSelect) {
+                // Use local date formatting to avoid timezone issues
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const selectedDateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
+                onDateSelect(selectedDateString);
+              }
+            }}
+            title="Click to create event on this date"
+          >
             <div className="text-sm">{date.toLocaleDateString("en-US", { weekday: "short" })}</div>
             <div className={`text-lg ${isToday ? "bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto" : ""}`}>
               {date.getDate()}
@@ -372,9 +408,22 @@ const CalendarView: React.FC = () => {
 
     return (
       <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b border-gray-200">
+        <div 
+          className="p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+          onClick={() => {
+            if (onDateSelect) {
+              // Use local date formatting to avoid timezone issues
+              const year = currentDate.getFullYear();
+              const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+              const day = String(currentDate.getDate()).padStart(2, '0');
+              const selectedDateString = `${year}-${month}-${day}`; // YYYY-MM-DD format
+              onDateSelect(selectedDateString);
+            }
+          }}
+        >
           <h3 className="text-lg font-semibold">
             {currentDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            <span className="ml-2 text-sm text-blue-600 font-normal">(Click to create event)</span>
           </h3>
         </div>
         <div className="max-h-[600px] overflow-y-auto">

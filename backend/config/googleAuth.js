@@ -103,7 +103,6 @@ const getCalendarEvents = async (accessToken, options = {}) => {
 
     const response = await calendar.events.list(params)
 
-    // console.log(`Successfully fetched ${response.data.items?.length || 0} events`)
     return response.data.items || []
   } catch (error) {
     console.error("Google Calendar API error:", error)
@@ -138,7 +137,6 @@ const deleteCalendarEvent = async (accessToken, eventId) => {
       eventId: eventId,
     })
 
-    console.log(`Successfully deleted event with ID: ${eventId}`)
     return { success: true, eventId }
   } catch (error) {
     console.error("Google Calendar delete error:", error)
