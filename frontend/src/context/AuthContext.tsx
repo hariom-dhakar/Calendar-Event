@@ -1,12 +1,6 @@
 "use client";
-import axios from "axios";
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  useEffect,
-} from "react";
+
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { api } from "../api/api";
 
 interface User {
@@ -47,70 +41,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // Check for OAuth callback parameters first
         const urlParams = new URLSearchParams(window.location.search);
-        const authResult = urlParams.get("auth");
-        const authMessage = urlParams.get("message");
-
-        if (authResult === "success") {
+        const authResult = urlParams.get('auth');
+        const authMessage = urlParams.get('message');
+        
+        if (authResult === 'success') {
           // Clear URL parameters and refresh auth status
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
-          console.log("OAuth success detected, checking auth status...");
-        } else if (authResult === "error") {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          console.log('OAuth success detected, checking auth status...');
+        } else if (authResult === 'error') {
           // Handle auth error
-          console.error("OAuth error:", authMessage);
+          console.error('OAuth error:', authMessage);
           setLoading(false);
           setUser(null);
           if (authMessage) {
             alert(`Authentication failed: ${decodeURIComponent(authMessage)}`);
           }
           // Clear URL parameters
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
+          window.history.replaceState({}, document.title, window.location.pathname);
           return; // Exit early, don't check auth status
         }
 
         // Check current auth status
-        useEffect(() => {
-          const checkAuth = async () => {
-            try {
-              const res = await axios.get(
-                `${import.meta.env.VITE_BACKEND_URL}/api/auth/status`,
-                {
-                  withCredentials: true,
-                }
-              );
-
-              console.log("Auth status response:", res.data); 
-
-              if (res.data.isAuthenticated) {
-                // Do something with user info
-                console.log("User:", res.data.user);
-              } else {
-                console.warn("User not authenticated");
-              }
-            } catch (error) {
-              console.error("Error checking auth status:", error);
-            }
-          };
-
-          checkAuth();
-        }, []);
+        const response = await api.get("/auth/status");
+        console.log("Auth status response:", response.data);
+        if (response.data.user) {
+          setUser(response.data.user);
+          console.log('User authenticated:', response.data.user.email);
+        } else {
+          setUser(null);
+          console.log('User not authenticated');
+        }
       } catch (error: any) {
         console.log("Auth check: User not logged in");
         // Check if it's a network error vs auth error
-        if (error.code === "ERR_NETWORK" || error.code === "ECONNREFUSED") {
-          console.error(
-            "Cannot connect to backend server. Make sure it's running on http://localhost:5000"
-          );
-          alert(
-            "Cannot connect to server. Please check if the backend is running."
-          );
+        if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED') {
+          console.error("Cannot connect to backend server. Make sure it's running on http://localhost:5000");
+          alert("Cannot connect to server. Please check if the backend is running.");
         } else if (error.response?.status === 401) {
           // This is expected for unauthenticated users
           console.log("User not authenticated (401)");
