@@ -12,6 +12,7 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: "User not found" })
     }
 
+    // Check if token needs refresh
     if (user.needsTokenRefresh()) {
       try {
 
@@ -37,6 +38,7 @@ const requireAuth = async (req, res, next) => {
         console.error("Token refresh failed:", error)
         console.error("Refresh token error details:", error.message)
         
+        // Clear the session as the refresh token is invalid
         req.session.destroy(() => {})
         return res.status(401).json({ 
           error: "Token refresh failed - please re-authenticate",
@@ -46,6 +48,7 @@ const requireAuth = async (req, res, next) => {
       }
     }
 
+    // Validate that we have a valid access token
     if (!user.accessToken) {
       return res.status(401).json({ 
         error: "No access token available - please re-authenticate",

@@ -11,11 +11,7 @@ interface CalendarStats {
   thisWeekEvents: number
 }
 
-interface CalendarStatsProps {
-  currentDate?: Date
-}
-
-const CalendarStats: React.FC<CalendarStatsProps> = ({ currentDate = new Date() }) => {
+const CalendarStats: React.FC = () => {
   const { user } = useAuth()
   const [stats, setStats] = useState<CalendarStats>({
     totalEvents: 0,
@@ -29,14 +25,13 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ currentDate = new Date() 
     if (user?.isCalendarConnected) {
       fetchStats()
     }
-  }, [user?.isCalendarConnected, currentDate])
+  }, [user?.isCalendarConnected])
 
   const fetchStats = async () => {
     try {
       setLoading(true)
       
-      const now = new Date(currentDate)
-      
+      const now = new Date()
       const startOfToday = new Date(now)
       startOfToday.setHours(0, 0, 0, 0)
       
@@ -51,16 +46,12 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ currentDate = new Date() 
       endOfWeek.setDate(endOfWeek.getDate() + 6)
       endOfWeek.setHours(23, 59, 59, 999)
       
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      startOfMonth.setHours(0, 0, 0, 0)
-      
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      endOfMonth.setHours(23, 59, 59, 999)
-      
-      const nextMonth = new Date(now)
-      nextMonth.setMonth(nextMonth.getMonth() + 1)
+      const oneMonthFromNow = new Date(now)
+      oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1)
 
+      // Use Promise.allSettled to handle any individual request failures
       const requests = await Promise.allSettled([
+        // Fetch today's events
         api.get("/calendar/events", {
           params: {
             timeMin: startOfToday.toISOString(),
@@ -69,6 +60,7 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ currentDate = new Date() 
             singleEvents: true,
           },
         }),
+        // Fetch this week's events
         api.get("/calendar/events", {
           params: {
             timeMin: startOfWeek.toISOString(),
@@ -77,28 +69,39 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ currentDate = new Date() 
             singleEvents: true,
           },
         }),
+        // Fetch upcoming events (next month)
         api.get("/calendar/events", {
           params: {
-            timeMin: startOfMonth.toISOString(),
-            timeMax: endOfMonth.toISOString(),
+            timeMin: now.toISOString(),
+            timeMax: oneMonthFromNow.toISOString(),
             maxResults: 100,
             singleEvents: true,
           },
         })
       ])
 
+      // Extract results or default to empty arrays
       const todayEvents = requests[0].status === 'fulfilled' ? requests[0].value.data.events || [] : []
       const weekEvents = requests[1].status === 'fulfilled' ? requests[1].value.data.events || [] : []
-      const monthEvents = requests[2].status === 'fulfilled' ? requests[2].value.data.events || [] : []
+      const upcomingEvents = requests[2].status === 'fulfilled' ? requests[2].value.data.events || [] : []
+
+      // Log for debugging
+      console.log('Calendar Stats Debug:', {
+        todayEvents: todayEvents.length,
+        weekEvents: weekEvents.length,
+        upcomingEvents: upcomingEvents.length,
+        requests: requests.map(r => r.status)
+      })
 
       setStats({
         todayEvents: todayEvents.length,
         thisWeekEvents: weekEvents.length,
-        upcomingEvents: monthEvents.length,
-        totalEvents: monthEvents.length, 
+        upcomingEvents: upcomingEvents.length,
+        totalEvents: upcomingEvents.length, // Using upcoming as total for now
       })
     } catch (error) {
       console.error("Error fetching calendar stats:", error)
+      // Set error state or show toast
       setStats({
         totalEvents: 0,
         todayEvents: 0,
@@ -115,36 +118,73 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ currentDate = new Date() 
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Calendar Overview - {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-      </h3>
+    <div className="bg-gradient-to-br from-white to-gray-50 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 p-6 sm:p-8 mb-6">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-xl">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+          Calendar Overview
+        </h3>
+      </div>
       
       {loading ? (
-        <div className="flex justify-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <div className="flex justify-center py-12">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent absolute top-0"></div>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.todayEvents}</div>
-            <div className="text-sm text-gray-600">
-              {currentDate.toDateString() === new Date().toDateString() ? "Today" : currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 sm:p-6 text-center border border-blue-200/50 hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-transparent bg-clip-text text-3xl sm:text-4xl font-bold mb-2">
+              {stats.todayEvents}
+            </div>
+            <div className="text-sm sm:text-base font-semibold text-gray-700 flex items-center justify-center space-x-2">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span>Today</span>
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.thisWeekEvents}</div>
-            <div className="text-sm text-gray-600">This Week</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{stats.upcomingEvents}</div>
-            <div className="text-sm text-gray-600">
-              {currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+          
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 sm:p-6 text-center border border-green-200/50 hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-transparent bg-clip-text text-3xl sm:text-4xl font-bold mb-2">
+              {stats.thisWeekEvents}
+            </div>
+            <div className="text-sm sm:text-base font-semibold text-gray-700 flex items-center justify-center space-x-2">
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>This Week</span>
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">{stats.totalEvents}</div>
-            <div className="text-sm text-gray-600">Total</div>
+          
+          <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-4 sm:p-6 text-center border border-purple-200/50 hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div className="bg-gradient-to-r from-purple-500 to-violet-500 text-transparent bg-clip-text text-3xl sm:text-4xl font-bold mb-2">
+              {stats.upcomingEvents}
+            </div>
+            <div className="text-sm sm:text-base font-semibold text-gray-700 flex items-center justify-center space-x-2">
+              <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+              <span>Upcoming</span>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-4 sm:p-6 text-center border border-orange-200/50 hover:shadow-lg transition-all duration-200 transform hover:scale-105">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-transparent bg-clip-text text-3xl sm:text-4xl font-bold mb-2">
+              {stats.totalEvents}
+            </div>
+            <div className="text-sm sm:text-base font-semibold text-gray-700 flex items-center justify-center space-x-2">
+              <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>Total</span>
+            </div>
           </div>
         </div>
       )}

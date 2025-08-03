@@ -44,14 +44,8 @@ const corsOptions = {
     
     const allowedOrigins = [
       process.env.FRONTEND_URL || "http://localhost:5173",
-      "https://calendar-event-eta.vercel.app",
-      "https://calendar-event.vercel.app", 
-      "https://calendar-event-2.vercel.app",
-      "https://calendar-event-hariom-dhakar.vercel.app",
       "http://localhost:5173",
-      "http://localhost:3000",
       "http://127.0.0.1:5173",
-      "http://127.0.0.1:3000",
       "http://10.25.110.110:5173"
     ]
     
@@ -134,6 +128,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Something went wrong!" })
 })
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+module.exports = app;

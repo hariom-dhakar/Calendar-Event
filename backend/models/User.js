@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     refreshToken: {
       type: String,
-      required: true,
+      required: false, // Changed from true - refresh tokens aren't always provided
     },
     tokenExpiry: {
       type: Date,

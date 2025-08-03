@@ -87,18 +87,36 @@ router.get("/google/callback", async (req, res) => {
 // Get user session status 
 router.get("/status", async (req, res) => {
   try {
+    // Enhanced debugging for production issues
+    const debugInfo = {
+      sessionExists: !!req.session,
+      sessionID: req.sessionID,
+      hasCookies: !!req.headers.cookie,
+      hasSessionUserId: !!req.session?.userId,
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      nodeEnv: process.env.NODE_ENV,
+      frontendUrl: process.env.FRONTEND_URL
+    }
+    
+    console.log('🔍 Auth status check:', debugInfo)
+
     if (!req.session.userId) {
       return res.json({
         isAuthenticated: false,
-        user: null
+        user: null,
+        debug: debugInfo
       })
     }
+
+    // Find user by session
     const user = await User.findById(req.session.userId)
     if (!user) {
       req.session.destroy(() => {})
       return res.json({
         isAuthenticated: false,
-        user: null
+        user: null,
+        debug: debugInfo
       })
     }
 
@@ -111,6 +129,7 @@ router.get("/status", async (req, res) => {
         picture: user.picture,
         isCalendarConnected: user.isCalendarConnected,
       },
+      debug: debugInfo
     })
   } catch (error) {
     console.error("Error checking auth status:", error)
