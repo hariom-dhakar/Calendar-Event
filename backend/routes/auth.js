@@ -72,7 +72,7 @@ router.get("/google/callback", async (req, res) => {
         googleId: userInfo.id,
         email: userInfo.email,
         name: userInfo.name,
-        username, // ✅ add this line
+        username: username, 
         picture: userInfo.picture,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
